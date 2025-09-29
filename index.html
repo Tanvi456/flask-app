@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SeniorCare AI — Demo App</title>
+
+</head>
+<body>
+<div class="container">
+  <header>
+    <img src="https://img.icons8.com/fluency/96/elderly.png" alt="logo">
+    <div>
+      <h1>SeniorCare AI — Demo</h1>
+      <p class="lead">A voice-first, simple interface to manage health, safety and memory care.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- MAIN COLUMN -->
+    <div>
+      <div class="card" role="region" aria-label="User setup">
+        <div class="section-title">1. Set up user</div>
+        <div class="small">Create a simple profile to begin (we store a user_id locally).</div>
+        <label>Name</label>
+        <input id="name" placeholder="e.g., Suman Devi" />
+        <label>Preferred language (code)</label>
+        <select id="lang">
+          <option value="hi">Hindi (hi)</option>
+          <option value="en">English (en)</option>
+          <option value="bn">Bengali (bn)</option>
+          <option value="mr">Marathi (mr)</option>
+          <option value="te">Telugu (te)</option>
+        </select>
+        <div class="row">
+          <button class="primary" onclick="createUser()">Create / Save User</button>
+          <button class="secondary" onclick="loadStoredUser()">Use saved</button>
+        </div>
+        <div id="userInfo" class="tiny" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card" role="region" aria-label="Voice input">
+        <div class="section-title">2. Voice-first assistant</div>
+        <div class="muted">Tap record, speak in your native language, and we will interpret and respond.</div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <button id="recordBtn" class="big-btn primary" onclick="toggleRecording()">Start recording</button>
+          <div style="width:120px">
+            <button class="secondary" onclick="sendRecorded()">Send</button>
+          </div>
+        </div>
+        <div class="small" id="recState">Not recording</div>
+        <div id="voiceLog" class="log">Transcript & assistant responses will appear here.</div>
+      </div>
+
+      <div class="card" role="region" aria-label="Reminders">
+        <div class="section-title">3. Reminders (medicine, appointments)</div>
+        <label>Title</label>
+        <input id="remTitle" placeholder="Take blood pressure pill" />
+        <label>Details (optional)</label>
+        <input id="remDetails" placeholder="After breakfast" />
+        <label>Remind at (YYYY-MM-DD HH:MM)</label>
+        <input id="remAt" placeholder="2025-09-28 09:00" />
+        <div class="row">
+          <button class="primary" onclick="createReminder()">Create reminder</button>
+          <button class="secondary" onclick="showOverview()">Health overview</button>
+        </div>
+        <div id="remResp" class="tiny"></div>
+      </div>
+
+      <div class="card" role="region" aria-label="Memory care">
+        <div class="section-title">4. Memory care — face & games</div>
+        <div class="muted">Register familiar faces and play simple voice games to stimulate memory.</div>
+
+        <label>Register face (choose image)</label>
+        <input type="file" id="faceFile" accept="image/*" />
+        <label>Person name</label>
+        <input id="faceName" placeholder="Sonu / Daughter / Nurse" />
+        <div class="row">
+          <button class="primary" onclick="registerFace()">Register Face</button>
+          <button class="secondary" onclick="matchFace()">Match Face (upload)</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <button class="big-btn" style="background:#fff;border:1px solid #e6eefb;" onclick="playCognitive()">Play quick memory game</button>
+        </div>
+        <div id="faceResp" class="tiny" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card" role="region" aria-label="Cancer care">
+        <div class="section-title">5. Cancer care & nearby centers</div>
+        <div class="muted">Find nearby centers and get basic guidance (demo results).</div>
+        <label>Query (optional)</label>
+        <input id="cancerQuery" placeholder="Dialysis / Screening" />
+        <div class="row">
+          <button class="primary" onclick="findCenters()">Find centers</button>
+          <button class="secondary" onclick="getGuidance()">Personalized guidance</button>
+        </div>
+        <div id="cancerResp" class="log" style="min-height:80px"></div>
+      </div>
+    </div>
+
+    <!-- SIDE COLUMN -->
+    <div>
+      <div class="card" role="region" aria-label="Emergency">
+        <div class="section-title">Emergency</div>
+        <div class="muted">One-tap SOS — call family & emergency services (demo).</div>
+        <div style="margin:14px 0">
+          <button class="sos" onclick="sendSOS()">ONE-TAP SOS</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="secondary" onclick="simulateFall()">Simulate fall (sensor)</button>
+          <button class="secondary" onclick="viewLogs()">View logs</button>
+        </div>
+        <div id="sosResp" class="tiny" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card" role="region" aria-label="Status">
+        <div class="section-title">Quick status</div>
+        <div style="margin-top:8px">
+          <button class="primary" onclick="showOverview()">Health overview</button>
+        </div>
+        <div id="overview" class="log" style="min-height:140px"></div>
+      </div>
+
+      <div class="card" role="region" aria-label="Help">
+        <div class="section-title">Tips</div>
+        <ul class="tiny">
+          <li>Use the big red SOS if you need urgent help.</li>
+          <li>Record voice and press Send — the assistant will reply in your language (server handles translation).</li>
+          <li>If face recognition isn't available locally, the app uses a placeholder (you can connect cloud APIs later).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>SeniorCare AI — Demo • Backend must be running at <code>http://127.0.0.1:8000</code></footer>
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+let mediaRecorder = null;
+let recordedBlobs = [];
+let localUserId = localStorage.getItem("sc_user_id") || null;
+
+document.addEventListener("DOMContentLoaded",()=>{
+  if(localUserId) showUserInfo();
+});
+
+function showUserInfo(){
+  const el = document.getElementById("userInfo");
+  el.textContent = localUserId ? "Current user id: " + localUserId : "No user selected";
+}
+
+async function createUser(){
+  const name = document.getElementById("name").value.trim();
+  const lang = document.getElementById("lang").value;
+  if(!name) return alert("Please enter a name");
+  const payload = { name, preferred_language: lang, emergency_contacts: [] };
+  try{
+    const res = await fetch(API_BASE + "/users", { method:"POST", headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    const data = await res.json();
+    localUserId = data.user_id;
+    localStorage.setItem("sc_user_id", localUserId);
+    showUserInfo();
+    alert("User created — saved locally.");
+  }catch(e){ console.error(e); alert("Failed to create user. Is backend running?"); }
+}
+
+function loadStoredUser(){
+  localUserId = localStorage.getItem("sc_user_id");
+  if(!localUserId) return alert("No saved user id found. Create a user first.");
+  showUserInfo();
+  alert("Loaded user id from previous session.");
+}
+
+/* Recording */
+async function toggleRecording(){
+  const btn = document.getElementById("recordBtn");
+  const state = document.getElementById("recState");
+  if(mediaRecorder && mediaRecorder.state === "recording"){
+    mediaRecorder.stop();
+    btn.textContent = "Start recording";
+    state.textContent = "Stopped. Press Send to send audio.";
+    return;
+  }
+  // start recording
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordedBlobs = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size>0) recordedBlobs.push(e.data); };
+    mediaRecorder.onstop = ()=> { state.textContent = "Recording stopped. You can press Send."; };
+    mediaRecorder.start();
+    btn.textContent = "Stop recording";
+    state.textContent = "Recording... speak clearly.";
+  }catch(err){
+    console.error(err); alert("Microphone access required. Please allow microphone permission.");
+  }
+}
+
+async function sendRecorded(){
+  if(!localUserId){ alert("Create or load a user first."); return; }
+  if(!recordedBlobs || recordedBlobs.length===0){ alert("No recorded audio. Press Start recording first."); return; }
+  const blob = new Blob(recordedBlobs, { type:'audio/webm' });
+  const form = new FormData();
+  form.append("file", blob, "voice.webm");
+  try{
+    appendLog("Uploading voice... please wait.");
+    const res = await fetch(`${API_BASE}/voice-input/${localUserId}`, { method:'POST', body: form });
+    const data = await res.json();
+    const out = `Transcript: ${data.transcript}\nInterpretation: ${JSON.stringify(data.interpretation)}\nResponse: ${data.response_text}`;
+    appendLog(out);
+    // If server returned tts_path, try to fetch it and play (note: backend stub writes text bytes)
+    if(data.tts_path){
+      // Attempt to fetch the tts file (may be binary or stub text)
+      try{
+        const ttsRes = await fetch(data.tts_path);
+        if(ttsRes.ok){
+          const blob2 = await ttsRes.blob();
+          const url = URL.createObjectURL(blob2);
+          const audio = new Audio(url);
+          audio.play().catch(()=>console.log("Audio autoplay blocked"));
+        }
+      }catch(e){
+        console.warn("Could not load tts:", e);
+      }
+    }
+  }catch(e){ console.error(e); appendLog("Error sending voice. Is backend running?"); }
+}
+
+/* Simple helper to append to log */
+function appendLog(txt){
+  const v = document.getElementById("voiceLog");
+  v.textContent = (new Date()).toLocaleTimeString() + " — " + txt + "\n\n" + v.textContent;
+}
+
+/* Reminders */
+async function createReminder(){
+  if(!localUserId){ alert("Create or load a user first."); return; }
+  const title = document.getElementById("remTitle").value.trim();
+  const details = document.getElementById("remDetails").value.trim();
+  const remind_at = document.getElementById("remAt").value.trim();
+  if(!title || !remind_at){ alert("Please add title and remind time."); return; }
+  // convert to ISO if needed
+  const dt = new Date(remind_at.replace(" ","T"));
+  if(Number.isNaN(dt.getTime())) return alert("Invalid date/time. Use format YYYY-MM-DD HH:MM");
+  const payload = { user_id: localUserId, title, details, remind_at: dt.toISOString() };
+  try{
+    const res = await fetch(API_BASE + "/reminders", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    document.getElementById("remResp").textContent = "Reminder scheduled: " + data.scheduled_for;
+  }catch(e){ console.error(e); alert("Failed to schedule reminder."); }
+}
+
+/* Face register & match */
+async function registerFace(){
+  if(!localUserId) return alert("Create or load user first.");
+  const fileEl = document.getElementById("faceFile");
+  const name = document.getElementById("faceName").value.trim();
+  if(!fileEl.files.length) return alert("Choose an image file.");
+  if(!name) return alert("Enter the person's name.");
+  const form = new FormData();
+  form.append("file", fileEl.files[0]);
+  form.append("user_id", localUserId);
+  form.append("name", name);
+  try{
+    const res = await fetch(API_BASE + "/memory/face/register?user_id="+encodeURIComponent(localUserId)+"&name="+encodeURIComponent(name), { method:'POST', body: form });
+    const data = await res.json();
+    document.getElementById("faceResp").textContent = "Registered: " + JSON.stringify(data);
+  }catch(e){ console.error(e); alert("Face register failed."); }
+}
+
+async function matchFace(){
+  const fileEl = document.getElementById("faceFile");
+  if(!fileEl.files.length) return alert("Choose an image to match.");
+  const form = new FormData();
+  form.append("file", fileEl.files[0]);
+  try{
+    const res = await fetch(API_BASE + "/memory/face/match", { method:'POST', body: form });
+    const data = await res.json();
+    document.getElementById("faceResp").textContent = "Match result: " + JSON.stringify(data);
+  }catch(e){ console.error(e); alert("Face match failed."); }
+}
+
+/* Cognitive game */
+async function playCognitive(){
+  if(!localUserId) return alert("Create or load user first.");
+  try{
+    const res = await fetch(API_BASE + `/memory/cognitive-game/${localUserId}`);
+    const data = await res.json();
+    const items = data.items.join(", ");
+    appendLog(`Game: ${data.instructions}\nWords: ${items}`);
+    alert("Game started: listen and repeat the words. (See transcript log)");
+  }catch(e){ console.error(e); alert("Could not start game."); }
+}
+
+/* Cancer centers */
+async function findCenters(){
+  if(!localUserId) return alert("Create or load user first.");
+  const q = document.getElementById("cancerQuery").value.trim();
+  try{
+    const res = await fetch(API_BASE + "/cancer/nearby-centers", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: localUserId, query: q })});
+    const data = await res.json();
+    document.getElementById("cancerResp").textContent = JSON.stringify(data.centers, null, 2);
+  }catch(e){ console.error(e); alert("Failed to find centers."); }
+}
+
+async function getGuidance(){
+  if(!localUserId) return alert("Create or load user first.");
+  try{
+    const res = await fetch(API_BASE + "/cancer/personalized-guidance", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: localUserId })});
+    const data = await res.json();
+    document.getElementById("cancerResp").textContent = JSON.stringify(data, null, 2);
+  }catch(e){ console.error(e); alert("Failed to get guidance."); }
+}
+
+/* SOS & sensors */
+async function sendSOS(){
+  if(!localUserId) return alert("Create or load user first.");
+  const payload = { user_id: localUserId, location: null, reason: "User pressed SOS" };
+  try{
+    const res = await fetch(API_BASE + "/emergency/sos", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    document.getElementById("sosResp").textContent = "SOS sent: " + JSON.stringify(data);
+    alert("SOS activated. Please wait for help.");
+  }catch(e){ console.error(e); alert("Failed to send SOS."); }
+}
+
+async function simulateFall(){
+  if(!localUserId) return alert("Create or load user first.");
+  const payload = { device_id: "demo-sensor", event: "fall", user_id: localUserId, location: null };
+  try{
+    const res = await fetch(API_BASE + "/sensor/webhook", { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    document.getElementById("sosResp").textContent = "Sensor sent: " + JSON.stringify(data);
+  }catch(e){ console.error(e); alert("Failed to simulate fall."); }
+}
+
+function viewLogs(){ alert("Check server console for notifications (demo)."); }
+
+/* Health overview */
+async function showOverview(){
+  if(!localUserId) return alert("Create or load user first.");
+  try{
+    const res = await fetch(API_BASE + `/health/overview/${localUserId}`);
+    const data = await res.json();
+    document.getElementById("overview").textContent = JSON.stringify(data, null, 2);
+  }catch(e){ console.error(e); alert("Failed to fetch overview."); }
+}
+</script>
+</body>
+</html>
+
